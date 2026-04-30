@@ -32,6 +32,7 @@ references/
 docs/
 docs/private-notes/
 AGENT.md
+README.md
 
 # Vector stores or large local indexes
 data/vectorstore/
