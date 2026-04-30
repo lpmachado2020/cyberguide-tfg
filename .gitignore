@@ -1,0 +1,42 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local data and generated artifacts
+tmp/
+logs/
+artifacts/
+
+# Corpus and reference material kept outside the repo by policy
+references/
+docs/
+docs/private-notes/
+
+# Vector stores or large local indexes
+data/vectorstore/
+data/chroma/
+data/faiss/
+
+# Generated evaluation outputs
+data/evals/*.json
+data/evals/*.jsonl
