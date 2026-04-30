@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CyberGuide</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="app-sidebar">
+        <div class="sidebar-top">
+          <div class="sidebar-brand-row">
+            <div class="brand-block brand-block-compact">
+              <p class="eyebrow">CyberGuide</p>
+              <h1>Chats</h1>
+            </div>
+            <button class="ghost-button ghost-button-compact" id="resetButton" type="button">New chat</button>
+          </div>
+
+          <label class="sr-only" for="chatSearchInput">Search chats</label>
+          <input
+            id="chatSearchInput"
+            class="chat-search-input"
+            type="search"
+            placeholder="Search chats..."
+          />
+        </div>
+
+        <section class="chat-list-section">
+          <div class="sidebar-section-header">
+            <p class="eyebrow">Recent</p>
+          </div>
+          <div class="chat-list" id="chatList">
+            <p class="empty-state">Your recent conversations will appear here.</p>
+          </div>
+        </section>
+      </aside>
+
+      <main class="app-main">
+        <section class="chat-panel">
+          <header class="chat-header">
+            <div class="chat-header-copy">
+              <p class="eyebrow">Conversation</p>
+              <h2 id="chatTitle">New chat</h2>
+            </div>
+            <div class="header-actions">
+              <div class="status-badge" id="statusBadge">Ready</div>
+            </div>
+          </header>
+
+          <div class="mode-strip">
+            <span class="mode-pill mode-pill-active" id="modePill">Corpus mode</span>
+            <span class="mode-pill" id="processingPill">Idle</span>
+          </div>
+
+          <div class="chat-stream" id="chatStream">
+            <article class="message assistant intro">
+              <p>
+                Ask a question, upload a PDF, or upload an image to start a grounded conversation.
+              </p>
+            </article>
+          </div>
+
+          <form class="composer" id="chatForm">
+            <div class="composer-surface">
+              <div class="composer-input-area">
+                <label class="sr-only" for="messageInput">Your question</label>
+                <textarea
+                  id="messageInput"
+                  name="message"
+                  rows="1"
+                  placeholder="Escribe una pregunta sobre ciberseguridad para pymes..."
+                  required
+                ></textarea>
+                <div class="composer-meta">
+                  <p class="helper-text" id="helperText">
+                    Current corpus: INCIBE policy documents in local Chroma.
+                  </p>
+                  <p class="composer-hint">Enter to send · Shift + Enter for newline</p>
+                </div>
+              </div>
+
+              <div class="composer-tools">
+                <button
+                  class="prompt-chip prompt-chip-compact"
+                  type="button"
+                  data-prompt="Que recomienda CyberGuide sobre copias de seguridad para una pyme?"
+                >
+                  Backups
+                </button>
+                <div class="upload-stack">
+                  <label class="file-pill" for="pdfInput">PDF</label>
+                  <input id="pdfInput" name="file" type="file" accept="application/pdf" />
+                </div>
+                <div class="upload-stack">
+                  <label class="file-pill" for="imageInput">Image</label>
+                  <input id="imageInput" name="image" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" />
+                </div>
+                <button type="submit" id="sendButton" class="send-button">Send</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <aside class="inspector-panel">
+          <div class="inspector-tabs">
+            <button class="inspector-tab inspector-tab-active" type="button" data-tab="process">Process</button>
+            <button class="inspector-tab" type="button" data-tab="sources">Sources</button>
+          </div>
+
+          <section class="inspector-view inspector-view-active" id="processView">
+            <div class="sources-header trace-header">
+              <div>
+                <p class="eyebrow">Pipeline trace</p>
+                <h2>How CyberGuide built this answer</h2>
+              </div>
+            </div>
+            <div class="trace-body" id="tracePanel">
+              <p class="empty-state">Aquí aparecerán los pasos del pipeline usados para construir la respuesta.</p>
+            </div>
+          </section>
+
+          <section class="inspector-view" id="sourcesView">
+            <div class="sources-header">
+              <p class="eyebrow">Evidence</p>
+              <h2>Retrieved sources</h2>
+            </div>
+            <div class="sources-list empty" id="sourcesList">
+              <p class="empty-state">Las fuentes usadas en cada respuesta aparecerán aquí.</p>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <template id="userMessageTemplate">
+      <article class="message user"><p></p></article>
+    </template>
+
+    <template id="assistantMessageTemplate">
+      <article class="message assistant">
+        <p></p>
+      </article>
+    </template>
+
+    <template id="thinkingMessageTemplate">
+      <article class="message assistant thinking">
+        <div class="thinking-header">
+          <span class="thinking-label">CyberGuide is working</span>
+          <span class="thinking-dots" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </div>
+        <p class="thinking-step"></p>
+      </article>
+    </template>
+
+    <template id="sourceCardTemplate">
+      <article class="source-card">
+        <div class="source-meta">
+          <span class="source-title"></span>
+          <span class="source-distance"></span>
+        </div>
+        <p class="source-excerpt"></p>
+        <a class="source-link" target="_blank" rel="noreferrer noopener">Open source</a>
+      </article>
+    </template>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
