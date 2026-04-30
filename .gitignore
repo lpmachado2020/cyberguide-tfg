@@ -31,6 +31,7 @@ artifacts/
 references/
 docs/
 docs/private-notes/
+AGENT.md
 
 # Vector stores or large local indexes
 data/vectorstore/
