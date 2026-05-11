@@ -1,0 +1,353 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CyberGuide design system — Apple-like, minimal, trustworthy.
+   All colors in HSL. Auto light/dark via prefers-color-scheme. */
+
+@layer base {
+  :root {
+    /* Surfaces — light */
+    --background: 210 20% 98%;
+    --foreground: 222 30% 12%;
+
+    --surface-page: 210 20% 98%;
+    --surface-panel: 0 0% 100%;
+    --surface-soft: 213 20% 96%;
+    --surface-sidebar: 0 0% 100%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 12%;
+
+    /* Midnight + Lime — accent */
+    --primary: 74 100% 55%;
+    --primary-foreground: 90 56% 5%;
+    --primary-strong: 74 100% 48%;
+    --primary-soft: 83 50% 92%;
+    /* Tinta lima legible sobre fondos claros */
+    --primary-ink: 88 75% 22%;
+
+    --secondary: 213 20% 96%;
+    --secondary-foreground: 222 30% 12%;
+
+    --muted: 213 18% 94%;
+    --muted-foreground: 215 12% 42%;
+    --muted-soft: 215 10% 60%;
+
+    --accent: 83 50% 94%;
+    --accent-foreground: 83 60% 22%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 16% 90%;
+    --border-strong: 215 16% 82%;
+    --input: 215 16% 90%;
+    --ring: 74 100% 55%;
+
+    --radius: 1.25rem;
+
+    /* Soft, airy ambient */
+    --gradient-page:
+      radial-gradient(ellipse 70% 50% at 15% 0%, hsl(74 100% 88% / 0.45), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 95% 100%, hsl(83 50% 90% / 0.35), transparent 60%),
+      linear-gradient(180deg, hsl(210 25% 99%) 0%, hsl(210 18% 96%) 100%);
+    --gradient-user-bubble: linear-gradient(135deg, hsl(74 100% 58%), hsl(82 100% 50%));
+
+    /* Burbuja usuario — lima eléctrico */
+    --user-bubble: 74 100% 62%;
+    --user-bubble-foreground: 90 56% 5%;
+
+    --shadow-float: 0 24px 60px -24px hsl(222 30% 12% / 0.18), 0 6px 16px -8px hsl(222 30% 12% / 0.06);
+    --shadow-soft: 0 8px 24px -12px hsl(222 30% 12% / 0.10);
+    --shadow-bubble: 0 4px 14px -6px hsl(222 30% 12% / 0.10);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 30% 12%;
+    --sidebar-primary: 74 100% 55%;
+    --sidebar-primary-foreground: 90 56% 5%;
+    --sidebar-accent: 83 50% 94%;
+    --sidebar-accent-foreground: 222 30% 12%;
+    --sidebar-border: 215 16% 90%;
+    --sidebar-ring: 74 100% 55%;
+  }
+
+  .dark {
+    /* Midnight + Lime */
+    --background: 225 18% 4%;
+    --foreground: 70 19% 92%;
+
+    --surface-page: 225 18% 4%;
+    --surface-panel: 225 17% 9%;
+    --surface-soft: 225 16% 12%;
+    --surface-sidebar: 225 18% 6%;
+
+    --card: 225 17% 9%;
+    --card-foreground: 70 19% 92%;
+    --popover: 225 17% 9%;
+    --popover-foreground: 70 19% 92%;
+
+    --primary: 74 100% 62%;
+    --primary-foreground: 90 56% 5%;
+    --primary-strong: 74 100% 70%;
+    --primary-soft: 83 39% 14%;
+    /* En oscuro la "tinta" es el lima brillante */
+    --primary-ink: 74 100% 70%;
+
+    --secondary: 225 16% 14%;
+    --secondary-foreground: 70 19% 92%;
+    --muted: 225 16% 14%;
+    --muted-foreground: 68 8% 60%;
+    --muted-soft: 68 8% 46%;
+    --accent: 83 39% 10%;
+    --accent-foreground: 74 100% 70%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 70 19% 92%;
+    --border: 225 16% 14%;
+    --border-strong: 225 14% 22%;
+    --input: 225 16% 14%;
+    --ring: 74 100% 62%;
+
+    --gradient-page:
+      radial-gradient(ellipse 70% 50% at 15% 0%, hsl(83 60% 14% / 0.55), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 95% 100%, hsl(74 80% 16% / 0.35), transparent 60%),
+      linear-gradient(180deg, hsl(225 18% 5%) 0%, hsl(225 20% 3%) 100%);
+    --gradient-user-bubble: linear-gradient(135deg, hsl(74 100% 62%), hsl(82 100% 55%));
+    --user-bubble: 74 100% 62%;
+    --user-bubble-foreground: 90 56% 5%;
+
+    --shadow-float: 0 24px 60px -24px hsl(0 0% 0% / 0.65), 0 6px 16px -8px hsl(0 0% 0% / 0.35);
+    --shadow-soft: 0 8px 24px -12px hsl(0 0% 0% / 0.45);
+    --shadow-bubble: 0 4px 14px -6px hsl(0 0% 0% / 0.45);
+
+    --sidebar-background: 225 18% 6%;
+    --sidebar-foreground: 70 19% 92%;
+    --sidebar-primary: 74 100% 62%;
+    --sidebar-primary-foreground: 90 56% 5%;
+    --sidebar-accent: 225 16% 14%;
+    --sidebar-accent-foreground: 70 19% 92%;
+    --sidebar-border: 225 16% 14%;
+    --sidebar-ring: 74 100% 62%;
+  }
+}
+
+/* Auto dark mode based on OS preference (no class needed) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: 225 18% 4%;
+    --foreground: 70 19% 92%;
+
+    --surface-page: 225 18% 4%;
+    --surface-panel: 225 17% 9%;
+    --surface-soft: 225 16% 12%;
+    --surface-sidebar: 225 18% 6%;
+
+    --card: 225 17% 9%;
+    --card-foreground: 70 19% 92%;
+    --popover: 225 17% 9%;
+    --popover-foreground: 70 19% 92%;
+
+    --primary: 74 100% 62%;
+    --primary-foreground: 90 56% 5%;
+    --primary-strong: 74 100% 70%;
+    --primary-soft: 83 39% 14%;
+    --primary-ink: 74 100% 70%;
+
+    --secondary: 225 16% 14%;
+    --secondary-foreground: 70 19% 92%;
+    --muted: 225 16% 14%;
+    --muted-foreground: 68 8% 60%;
+    --muted-soft: 68 8% 46%;
+    --accent: 83 39% 10%;
+    --accent-foreground: 74 100% 70%;
+    --border: 225 16% 14%;
+    --border-strong: 225 14% 22%;
+    --input: 225 16% 14%;
+    --ring: 74 100% 62%;
+
+    --gradient-page:
+      radial-gradient(ellipse 70% 50% at 15% 0%, hsl(83 60% 14% / 0.55), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 95% 100%, hsl(74 80% 16% / 0.35), transparent 60%),
+      linear-gradient(180deg, hsl(225 18% 5%) 0%, hsl(225 20% 3%) 100%);
+    --gradient-user-bubble: linear-gradient(135deg, hsl(74 100% 62%), hsl(82 100% 55%));
+    --user-bubble: 74 100% 62%;
+    --user-bubble-foreground: 90 56% 5%;
+
+    --shadow-float: 0 24px 60px -24px hsl(0 0% 0% / 0.65), 0 6px 16px -8px hsl(0 0% 0% / 0.35);
+    --shadow-soft: 0 8px 24px -12px hsl(0 0% 0% / 0.45);
+    --shadow-bubble: 0 4px 14px -6px hsl(0 0% 0% / 0.45);
+
+    --sidebar-background: 225 18% 6%;
+    --sidebar-foreground: 70 19% 92%;
+    --sidebar-accent: 225 16% 14%;
+    --sidebar-accent-foreground: 70 19% 92%;
+    --sidebar-border: 225 16% 14%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    background: var(--gradient-page);
+    background-attachment: fixed;
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "ss01", "ss03", "cv11";
+    letter-spacing: -0.011em;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.032em;
+    font-feature-settings: "ss01", "ss02", "ss03";
+  }
+
+  code, pre, kbd, samp {
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+}
+
+@layer components {
+  /* Frosted glass — no borders, just blur and subtle highlight */
+  .glass {
+    background: hsl(var(--surface-panel) / 0.62);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    box-shadow: var(--shadow-float);
+  }
+
+  .glass-soft {
+    background: hsl(var(--surface-panel) / 0.50);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  /* Subtle hover surface — toque lima */
+  .hover-surface {
+    @apply transition-colors duration-150;
+  }
+  .hover-surface:hover {
+    background: hsl(var(--primary) / 0.12);
+    color: hsl(var(--foreground));
+  }
+
+  .thinking-dot {
+    @apply inline-block h-1.5 w-1.5 rounded-full;
+    background: hsl(var(--muted-foreground));
+    animation: cg-pulse 1.2s infinite ease-in-out;
+  }
+
+  /* Markdown */
+  .md-prose p { margin: 0 0 0.6em; line-height: 1.65; }
+  .md-prose p:last-child { margin-bottom: 0; }
+  .md-prose ul, .md-prose ol { margin: 0.4em 0 0.6em 1.2em; }
+  .md-prose li { margin: 0.2em 0; line-height: 1.6; }
+  .md-prose strong { font-weight: 600; }
+  .md-prose code {
+    background: hsl(var(--muted));
+    padding: 0.1em 0.35em;
+    border-radius: 6px;
+    font-size: 0.88em;
+  }
+  .md-prose pre {
+    background: hsl(var(--muted));
+    padding: 12px 14px;
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+  }
+  .md-prose pre code { background: transparent; padding: 0; }
+  .md-prose a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
+  .md-prose h1, .md-prose h2, .md-prose h3 { margin: 0.6em 0 0.3em; font-weight: 600; letter-spacing: -0.02em; }
+  .md-prose h1 { font-size: 1.25em; }
+  .md-prose h2 { font-size: 1.12em; }
+  .md-prose h3 { font-size: 1em; }
+  .md-prose blockquote {
+    margin: 0.5em 0; padding: 0.2em 0 0.2em 0.9em;
+    border-left: 2px solid hsl(var(--foreground) / 0.18);
+    color: hsl(var(--muted-foreground));
+  }
+  .md-prose table {
+    width: 100%; border-collapse: collapse; margin: 0.6em 0;
+    font-size: 0.9em;
+  }
+  .md-prose th, .md-prose td {
+    padding: 0.5em 0.7em; text-align: left;
+    border-bottom: 1px solid hsl(var(--foreground) / 0.08);
+  }
+  .md-prose th { font-weight: 600; }
+  .md-prose hr { border: 0; border-top: 1px solid hsl(var(--foreground) / 0.10); margin: 1em 0; }
+
+  /* Scrim para overlays (sidebars) */
+  .cg-scrim {
+    background: hsl(var(--foreground) / 0.06);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+}
+
+@keyframes cg-pulse {
+  0%, 100% { opacity: 0.30; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+.thinking-dot:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* Scrollbar integrado — fino, transparente, aparece sutil al hacer hover */
+.cg-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+.cg-scroll:hover {
+  scrollbar-color: hsl(var(--foreground) / 0.18) transparent;
+}
+.cg-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.cg-scroll::-webkit-scrollbar-track { background: transparent; }
+.cg-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.25s ease;
+}
+.cg-scroll:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground) / 0.18);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.cg-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground) / 0.35);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Slide-in for overlay panels */
+@keyframes slide-in-left {
+  from { transform: translateX(-12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-left { animation: slide-in-left 0.22s ease-out; }
+.animate-slide-right { animation: slide-in-right 0.22s ease-out; }

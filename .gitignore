@@ -16,7 +16,8 @@ venv/
 node_modules/
 dist/
 build/
-frontend/
+frontend/node_modules/
+frontend/dist/
 
 # Environment / secrets
 .env
