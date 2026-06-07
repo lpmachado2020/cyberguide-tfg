@@ -252,10 +252,14 @@
   }
 
   /* Markdown */
+  .md-prose { color: hsl(var(--foreground) / 0.92); }
   .md-prose p { margin: 0 0 0.6em; line-height: 1.65; }
   .md-prose p:last-child { margin-bottom: 0; }
-  .md-prose ul, .md-prose ol { margin: 0.4em 0 0.6em 1.2em; }
+  .md-prose ul, .md-prose ol { margin: 0.4em 0 0.6em 1.2em; padding-left: 0.2rem; }
+  .md-prose ul { list-style: disc; }
+  .md-prose ol { list-style: decimal; }
   .md-prose li { margin: 0.2em 0; line-height: 1.6; }
+  .md-prose li::marker { color: hsl(var(--primary-ink) / 0.7); }
   .md-prose strong { font-weight: 600; }
   .md-prose code {
     background: hsl(var(--muted));

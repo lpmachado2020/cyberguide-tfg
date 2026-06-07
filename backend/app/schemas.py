@@ -43,11 +43,31 @@ class ResponseTrace(BaseModel):
     steps: list[TraceStep]
     retrieved_candidates: int = 0
     curated_candidates: int = 0
+    intent: Optional[str] = None
+    evidence_policy: Optional[str] = None
+    dialogue_goal: Optional[str] = None
+    response_shape: Optional[str] = None
+    response_strategy: Optional[str] = None
+    answer_mode: Optional[str] = None
+    follow_up_policy: Optional[str] = None
+    needs_clarification: bool = False
     active_document: Optional[str] = None
     history_turns: int = 0
     ocr_segments: int = 0
     safety_mode: bool = False
     risk_signals: list[str] = Field(default_factory=list)
+    selected_chunk_refs: list[str] = Field(default_factory=list)
+    retrieval_ms: float = 0.0
+    embedding_ms: float = 0.0
+    generation_ms: float = 0.0
+    total_ms: float = 0.0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    estimated_external_cost_eur: float = 0.0
+    local_execution: bool = True
+    local_execution_note: Optional[str] = None
+    cost_measurement_note: Optional[str] = None
 
 
 class RetrievedChunk(BaseModel):

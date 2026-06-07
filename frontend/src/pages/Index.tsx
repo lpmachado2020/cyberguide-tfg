@@ -12,10 +12,10 @@ import { SideRail } from "@/components/chat/SideRail";
 import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
-  { icon: Mail, label: "Analizar un correo de phishing" },
-  { icon: KeyRound, label: "Mejorar mis contraseñas" },
-  { icon: ShieldAlert, label: "¿Qué hago si me han hackeado?" },
-  { icon: FileSearch, label: "Revisar un PDF sospechoso" },
+  { icon: Mail, label: "Analizar un correo de phishing", action: "send" as const },
+  { icon: KeyRound, label: "Mejorar mis contraseñas", action: "send" as const },
+  { icon: ShieldAlert, label: "¿Qué hago si me han hackeado?", action: "send" as const },
+  { icon: FileSearch, label: "Revisar un PDF sospechoso", action: "prefill" as const },
 ];
 
 const Index = () => {
@@ -299,11 +299,19 @@ const Index = () => {
                   transition={{ delay: 0.15, duration: 0.4 }}
                   className="mt-5 flex flex-wrap justify-center gap-2"
                 >
-                  {QUICK_ACTIONS.map(({ icon: Icon, label }) => (
+                  {QUICK_ACTIONS.map(({ icon: Icon, label, action }) => (
                     <button
                       key={label}
                       type="button"
-                      onClick={() => setPendingPrompt(label)}
+                      onClick={() => {
+                        if (isThinking) return;
+                        if (action === "send") {
+                          void sendMessage(label, null);
+                          setPendingPrompt("");
+                          return;
+                        }
+                        setPendingPrompt(label);
+                      }}
                       className="hover-surface group inline-flex items-center gap-2 rounded-full bg-foreground/[0.04] px-3.5 py-1.5 text-[0.82rem] text-foreground/75 transition-all"
                     >
                       <Icon className="h-3.5 w-3.5 text-foreground/55 transition-colors group-hover:text-foreground/80" strokeWidth={2} />

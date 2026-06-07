@@ -18,7 +18,8 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
@@ -46,6 +47,7 @@ async def lifespan(_: FastAPI):
     settings.processed_data_dir.mkdir(parents=True, exist_ok=True)
     settings.chroma_dir.mkdir(parents=True, exist_ok=True)
     settings.frontend_dir.mkdir(parents=True, exist_ok=True)
+    settings.frontend_dist_dir.mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -53,6 +55,21 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -165,13 +182,45 @@ async def query_image(
 
 
 @app.get("/", include_in_schema=False)
-async def index() -> FileResponse:
-    """Serve the local CyberGuide interface."""
-    return FileResponse(settings.frontend_dir / "index.html")
+async def index():
+    """Serve the built frontend when available, or explain how to run the UI."""
+    index_file = settings.frontend_dist_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": (
+                "Frontend build not found. Run `npm run dev` inside `frontend/` for development "
+                "or `npm run build` to generate `frontend/dist` for backend-served static files."
+            )
+        },
+    )
 
 
 app.mount(
     "/assets",
-    StaticFiles(directory=settings.frontend_dir / "assets"),
+    StaticFiles(directory=settings.frontend_dist_dir / "assets", check_dir=False),
     name="assets",
 )
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def spa_fallback(full_path: str):
+    """Serve the SPA entrypoint for frontend routes when the production build exists."""
+    if full_path.startswith(("health", "query", "query_pdf", "query_image", "assets/")):
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
+    index_file = settings.frontend_dist_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": (
+                "Frontend route not available because `frontend/dist` does not exist yet. "
+                "Use the Vite dev server or build the frontend first."
+            )
+        },
+    )

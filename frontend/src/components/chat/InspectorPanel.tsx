@@ -15,7 +15,7 @@ export function InspectorPanel({ trace, sources, onClose }: InspectorProps) {
   const [tab, setTab] = useState<Tab>("process");
 
   return (
-    <aside className="glass animate-slide-right flex h-full w-[340px] flex-col rounded-[28px]">
+    <aside className="glass animate-slide-right flex h-full w-[380px] max-w-[calc(100vw-1.5rem)] flex-col rounded-[28px] border border-white/35">
       <div className="flex items-center gap-1 p-2 pl-3">
         <TabButton active={tab === "process"} onClick={() => setTab("process")} icon={<Layers className="h-3.5 w-3.5" />}>
           Proceso
@@ -81,9 +81,22 @@ function ProcessView({ trace }: { trace: Trace | null }) {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
+        {trace.intent && <Pill>intención {trace.intent}</Pill>}
+        {trace.evidence_policy && <Pill>evidencia {trace.evidence_policy}</Pill>}
+        {trace.dialogue_goal && <Pill>objetivo {trace.dialogue_goal}</Pill>}
+        {trace.response_shape && <Pill>forma {trace.response_shape}</Pill>}
+        {trace.response_strategy && <Pill>estrategia {trace.response_strategy}</Pill>}
+        {trace.answer_mode && <Pill>modo {trace.answer_mode}</Pill>}
+        {trace.needs_clarification && <Pill tone="warning">requiere aclaración</Pill>}
         <Pill>historial {trace.history_turns ?? 0}</Pill>
         <Pill>recuperados {trace.retrieved_candidates ?? 0}</Pill>
         <Pill>seleccionados {trace.curated_candidates ?? 0}</Pill>
+        {typeof trace.total_tokens === "number" && trace.total_tokens > 0 && (
+          <Pill>tokens {trace.total_tokens}</Pill>
+        )}
+        {typeof trace.total_ms === "number" && trace.total_ms > 0 && (
+          <Pill>{Math.round(trace.total_ms)} ms</Pill>
+        )}
         {trace.safety_mode && (
           <Pill tone="warning">
             <ShieldAlert className="h-3 w-3" />
@@ -115,6 +128,54 @@ function ProcessView({ trace }: { trace: Trace | null }) {
           </ol>
         </div>
       )}
+
+      {(trace.retrieval_ms ||
+        trace.embedding_ms ||
+        trace.generation_ms ||
+        trace.prompt_tokens ||
+        typeof trace.estimated_external_cost_eur === "number" ||
+        trace.local_execution_note ||
+        (trace.selected_chunk_refs && trace.selected_chunk_refs.length > 0)) && (
+        <div className="space-y-3">
+          <p className="text-[0.7rem] font-medium uppercase tracking-wider text-muted-foreground/80">
+            Métricas
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <MetricCard label="Embedding" value={formatMs(trace.embedding_ms)} />
+            <MetricCard label="Retrieval" value={formatMs(trace.retrieval_ms)} />
+            <MetricCard label="Generación" value={formatMs(trace.generation_ms)} />
+            <MetricCard label="Total" value={formatMs(trace.total_ms)} />
+            <MetricCard label="Prompt tokens" value={formatCount(trace.prompt_tokens)} />
+            <MetricCard label="Completion tokens" value={formatCount(trace.completion_tokens)} />
+            <MetricCard label="Coste externo" value={formatCurrency(trace.estimated_external_cost_eur)} />
+          </div>
+          {trace.selected_chunk_refs && trace.selected_chunk_refs.length > 0 && (
+            <div>
+              <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
+                Chunks usados
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {trace.selected_chunk_refs.map((ref) => (
+                  <Pill key={ref}>{ref}</Pill>
+                ))}
+              </div>
+            </div>
+          )}
+          {trace.local_execution_note && (
+            <div className="rounded-2xl bg-foreground/5 p-3">
+              <p className="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
+                Ejecución local
+              </p>
+              <p className="text-[0.82rem] leading-relaxed text-muted-foreground">{trace.local_execution_note}</p>
+              {trace.cost_measurement_note && (
+                <p className="mt-2 text-[0.78rem] leading-relaxed text-muted-foreground">
+                  {trace.cost_measurement_note}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -130,7 +191,7 @@ function SourcesView({ sources }: { sources: Source[] }) {
         const title = (s.metadata?.title as string) || `Fuente ${i + 1}`;
         const url = s.metadata?.source_url as string | undefined;
         return (
-          <article key={s.id || i} className="rounded-2xl bg-foreground/5 p-3">
+          <article key={s.id || i} className="rounded-3xl border border-white/25 bg-foreground/[0.045] p-3.5 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]">
             <div className="mb-1.5 flex items-start justify-between gap-3">
               <h3 className="text-sm font-medium leading-snug">{title}</h3>
               {typeof s.distance === "number" && (
@@ -139,7 +200,10 @@ function SourcesView({ sources }: { sources: Source[] }) {
                 </span>
               )}
             </div>
-            <p className="line-clamp-4 text-[0.82rem] leading-relaxed text-muted-foreground">
+            <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
+              Extracto relevante
+            </p>
+            <p className="line-clamp-6 text-[0.82rem] leading-relaxed text-muted-foreground">
               {s.text}
             </p>
             {url && (
@@ -147,10 +211,10 @@ function SourcesView({ sources }: { sources: Source[] }) {
                 href={url}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
               >
                 <Link2 className="h-3 w-3" />
-                Abrir
+                Abrir documento
                 <ChevronRight className="h-3 w-3" />
               </a>
             )}
@@ -187,4 +251,35 @@ function Empty({ title, description }: { title: string; description: string }) {
       <p className="max-w-[240px] text-xs leading-relaxed text-muted-foreground">{description}</p>
     </div>
   );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-foreground/5 p-3">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function formatMs(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "0 ms";
+  return `${Math.round(value)} ms`;
+}
+
+function formatCount(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "0";
+  return String(value);
+}
+
+function formatCurrency(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "0,00 EUR";
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }

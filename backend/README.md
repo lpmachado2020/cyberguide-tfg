@@ -31,6 +31,8 @@ Desde la raíz del proyecto:
 docker compose up --build
 ```
 
+La imagen actual compila el frontend durante el build y el backend sirve la SPA resultante desde `frontend/dist`, así que no hace falta levantar un contenedor separado para la interfaz web.
+
 Detalles clave:
 
 - El contenedor expone `8000:8000`

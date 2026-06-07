@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Tuple
 from uuid import uuid4
 
-from ..schemas import ConversationTurn
+from ..schemas import ConversationTurn, RetrievedChunk
 from .ingestion import PreparedChunk
 
 
@@ -31,6 +31,9 @@ class SessionState:
     history: list[ConversationTurn] = field(default_factory=list)
     document_title: Optional[str] = None
     document_chunks: list[PreparedChunk] = field(default_factory=list)
+    last_sources: list[RetrievedChunk] = field(default_factory=list)
+    last_intent: Optional[str] = None
+    last_dialogue_goal: Optional[str] = None
 
 
 class SessionStore:
@@ -73,3 +76,33 @@ class SessionStore:
         """Return the active uploaded document title and chunks for a session."""
         _, state = self.get_or_create(session_id)
         return state.document_title, state.document_chunks
+
+    def set_last_sources(self, session_id: str, sources: list[RetrievedChunk]) -> None:
+        """Persist the latest grounded evidence used in a completed assistant turn."""
+        _, state = self.get_or_create(session_id)
+        state.last_sources = [source.model_copy(deep=True) for source in sources]
+
+    def get_last_sources(self, session_id: str) -> list[RetrievedChunk]:
+        """Return a copy of the latest grounded evidence used in the session."""
+        _, state = self.get_or_create(session_id)
+        return [source.model_copy(deep=True) for source in state.last_sources]
+
+    def set_last_intent(self, session_id: str, intent: str) -> None:
+        """Persist the latest resolved user intent for short follow-up turns."""
+        _, state = self.get_or_create(session_id)
+        state.last_intent = intent
+
+    def get_last_intent(self, session_id: str) -> Optional[str]:
+        """Return the latest resolved user intent in the session."""
+        _, state = self.get_or_create(session_id)
+        return state.last_intent
+
+    def set_last_dialogue_goal(self, session_id: str, goal: str) -> None:
+        """Persist the latest dialogue goal to stabilize short follow-up turns."""
+        _, state = self.get_or_create(session_id)
+        state.last_dialogue_goal = goal
+
+    def get_last_dialogue_goal(self, session_id: str) -> Optional[str]:
+        """Return the latest dialogue goal resolved in the session."""
+        _, state = self.get_or_create(session_id)
+        return state.last_dialogue_goal

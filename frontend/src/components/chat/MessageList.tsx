@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Pencil, RefreshCw, Star } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, FileSearch, Pencil, RefreshCw, Star } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { BranchSet, ChatMessage } from "@/types/chat";
@@ -182,7 +182,7 @@ function Bubble({
         className={cn(
           isUser
             ? "rounded-3xl rounded-br-md bg-[hsl(var(--user-bubble))] px-4 py-2.5 text-[hsl(var(--user-bubble-foreground))]"
-            : "",
+            : "glass-soft rounded-[26px] rounded-tl-md border border-white/35 px-4 py-3 text-foreground shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]",
           isUser && editing && "w-full",
         )}
       >
@@ -420,8 +420,15 @@ function InspectorToggle({ open, onClick }: { open: boolean; onClick: () => void
       onClick={onClick}
       aria-label={open ? "Ocultar proceso y fuentes" : "Ver proceso y fuentes"}
       title={open ? "Ocultar detalles" : "Ver detalles del razonamiento"}
-      className="mb-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-foreground/40 transition-colors hover:text-foreground/80"
+      className={cn(
+        "mb-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.72rem] font-medium transition-colors",
+        open
+          ? "border-primary/30 bg-primary/10 text-foreground"
+          : "border-border/60 bg-background/55 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+      )}
     >
+      <FileSearch className="h-3.5 w-3.5" strokeWidth={2.1} />
+      <span>{open ? "Ocultar detalles" : "Proceso y fuentes"}</span>
       <ChevronDown
         className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
         strokeWidth={2.6}

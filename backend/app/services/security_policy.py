@@ -173,7 +173,7 @@ def build_cautious_answer(
         "o contacta con soporte por un canal independiente y conocido.\n"
         "- Si el contexto es laboral, notifícalo también al equipo de TI o seguridad antes de actuar.\n\n"
         f"No puedo confirmar con certeza que sea phishing solo a partir de esta evidencia, pero sí debo "
-        f"priorizar una recomendación segura. (Fuente: {document_title})"
+        "priorizar una recomendación segura."
     )
 
 

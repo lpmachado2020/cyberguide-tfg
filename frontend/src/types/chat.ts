@@ -40,11 +40,31 @@ export interface Trace {
   steps?: TraceStep[];
   retrieved_candidates?: number;
   curated_candidates?: number;
+  intent?: string | null;
+  evidence_policy?: string | null;
+  dialogue_goal?: string | null;
+  response_shape?: string | null;
+  response_strategy?: string | null;
+  answer_mode?: string | null;
+  follow_up_policy?: string | null;
+  needs_clarification?: boolean;
   active_document?: string | null;
   history_turns?: number;
   ocr_segments?: number;
   safety_mode?: boolean;
   risk_signals?: string[];
+  selected_chunk_refs?: string[];
+  retrieval_ms?: number;
+  embedding_ms?: number;
+  generation_ms?: number;
+  total_ms?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  estimated_external_cost_eur?: number;
+  local_execution?: boolean;
+  local_execution_note?: string | null;
+  cost_measurement_note?: string | null;
 }
 
 export interface QueryResponse {

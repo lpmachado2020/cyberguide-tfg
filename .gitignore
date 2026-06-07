@@ -44,3 +44,5 @@ data/faiss/
 # Generated evaluation outputs
 data/evals/*.json
 data/evals/*.jsonl
+data/processed/runtime_audit.ndjson
+.playwright-browsers/
