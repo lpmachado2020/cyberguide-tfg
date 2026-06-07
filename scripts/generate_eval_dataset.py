@@ -76,6 +76,8 @@ def build_case_id(chunk_id: str, question: str) -> str:
 
 def is_eval_worthy_chunk(text: str) -> bool:
     """Return True when a chunk looks informative enough for evaluation generation."""
+    # Ignore boilerplate and noisy fragments so the benchmark stays anchored in
+    # meaningful content instead of structure or navigation artifacts.
     normalized = text.lower()
     if any(pattern in normalized for pattern in REJECTED_PATTERNS):
         return False
@@ -121,6 +123,8 @@ async def generate_cases(
 
     rows: list[dict[str, Any]] = []
     for chunk in selected_chunks:
+        # Generate questions from one excerpt at a time so each case stays tied
+        # to a concrete source chunk.
         prompt = f"""Create {questions_per_chunk} grounded evaluation items from this excerpt.
 
 Document title: {chunk.metadata.get("title", "Unknown")}
@@ -146,6 +150,8 @@ Excerpt:
             if not question or not expected_answer:
                 continue
 
+            # Keep the source excerpt in the dataset because the judge pass needs
+            # the original evidence to score grounding later.
             rows.append(
                 {
                     "case_id": build_case_id(chunk.chunk_id, question),
@@ -181,6 +187,8 @@ def main() -> None:
     parser.add_argument("--min-chars", type=int, default=500)
     args = parser.parse_args()
 
+    # The defaults are chosen so the script can be run directly from the repo
+    # root without having to pass explicit paths every time.
     report = asyncio.run(
         generate_cases(
             root=args.root,

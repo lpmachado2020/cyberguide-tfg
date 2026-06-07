@@ -45,6 +45,8 @@ async def ingest(root: Path) -> IngestReport:
     processed_chunks = 0
 
     for path in files:
+        # Resolve the public URL before chunking so each stored chunk keeps a
+        # traceable link back to the original source when one exists.
         source_url = resolve_source_url(
             path=path,
             root=root,

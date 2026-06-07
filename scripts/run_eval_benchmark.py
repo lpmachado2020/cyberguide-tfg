@@ -39,6 +39,8 @@ async def run_benchmark(
 
     async with httpx.AsyncClient(base_url=base_url, timeout=180.0) as client:
         for case in cases:
+            # Reuse the case id as the session id so session-sensitive behavior
+            # stays reproducible across benchmark runs.
             payload = {
                 "message": case["question"],
                 "top_k": top_k,
@@ -62,6 +64,8 @@ async def run_benchmark(
                     }
                 )
             except Exception as exc:  # noqa: BLE001
+                # Keep failed cases in the output file so the judge can separate
+                # transport problems from answer-quality problems.
                 results.append(
                     {
                         **case,
@@ -93,6 +97,8 @@ def main() -> None:
     parser.add_argument("--top-k", type=int, default=4)
     args = parser.parse_args()
 
+    # The default base URL matches the local development setup documented in
+    # the repo, so the command can be run without extra flags.
     report = asyncio.run(
         run_benchmark(
             dataset_path=args.dataset,

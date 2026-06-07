@@ -23,7 +23,6 @@ Este directorio contiene la interfaz web de `CyberGuide`. Su función es present
 
 ```text
 frontend/
-├── public/
 ├── src/
 │   ├── components/
 │   │   └── chat/

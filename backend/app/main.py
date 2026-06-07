@@ -37,6 +37,8 @@ vector_store = VectorStore(settings)
 ollama_client = OllamaClient(settings)
 ocr_service = OCRService()
 session_store = SessionStore()
+# Keep these service instances at module scope so every request shares the same
+# local vector store, session memory and Ollama client.
 rag_service = RagService(settings, ollama_client, vector_store, session_store)
 
 
@@ -98,6 +100,8 @@ async def query_pdf(
     file: Optional[UploadFile] = File(default=None),
 ) -> QueryResponse:
     """Run a temporary RAG flow using an uploaded PDF or the active PDF session."""
+    # Only accept PDF-like content here so the route stays predictable and the
+    # backend can treat this path as a document-specific conversation.
     if file and file.content_type not in {"application/pdf", "application/octet-stream"}:
         return QueryResponse(
             answer="Por ahora solo puedo procesar archivos PDF en esta ruta de consulta.",
@@ -111,6 +115,8 @@ async def query_pdf(
     prepared_chunks = None
     title = None
     if file:
+        # Parse the uploaded PDF into temporary chunks, then tag them as PDF
+        # evidence so the RAG layer can keep them separate from corpus chunks.
         file_bytes = await file.read()
         extracted_text = read_pdf_bytes(file_bytes)
         title = file.filename or "uploaded pdf"
@@ -144,6 +150,8 @@ async def query_image(
         "image/webp",
         "application/octet-stream",
     }
+    # OCR image turns are more sensitive, so we keep the accepted MIME types
+    # narrow and route the extracted text through the same document pipeline.
     if file and file.content_type not in allowed_types:
         return QueryResponse(
             answer="Por ahora solo puedo procesar imagenes PNG, JPG o WEBP en esta ruta de consulta.",
@@ -159,6 +167,8 @@ async def query_image(
     title = None
     ocr_segments = 0
     if file:
+        # Convert the image into text first; the downstream service only sees
+        # chunks, never raw binary image data.
         image_bytes = await file.read()
         extraction = ocr_service.extract_text(image_bytes)
         title = file.filename or "uploaded image"

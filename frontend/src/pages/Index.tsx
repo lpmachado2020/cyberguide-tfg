@@ -46,12 +46,14 @@ const Index = () => {
   const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
 
   function jumpToMessage(chatId: string, messageId: string) {
+    // Select the chat first, then focus the target message once the list has
+    // had time to render the new selection.
     selectChat(chatId);
-    // Pequeño delay para asegurar que el chat se haya renderizado
     window.setTimeout(() => setFocusMessageId(messageId), 60);
   }
 
-  // Pequeño retardo para evitar parpadeo al pasar entre el rail y el sidebar.
+  // Keep the hover state slightly sticky so the rail and sidebar feel like one
+  // continuous control rather than two separate flickering targets.
   const hoverLeaveTimer = useRef<number | null>(null);
   const cancelHoverLeave = () => {
     if (hoverLeaveTimer.current) {
@@ -67,29 +69,31 @@ const Index = () => {
     cancelHoverLeave();
     hoverLeaveTimer.current = window.setTimeout(() => setSidebarHover(false), 80);
   };
-  // Si el ratón está sobre uno de los botones del rail, cancelamos la
-  // expansión por hover: solo se abrirá si el usuario hace clic.
+  // Hover-only expansion is cancelled when the user interacts with the rail,
+  // so the sidebar only stays open after an explicit action.
   const cancelHoverExpand = () => {
     cancelHoverLeave();
     setSidebarHover(false);
   };
-  // Cualquier clic dentro del sidebar lo "ancla" (queda fijo abierto).
+  // Any click inside the sidebar pins it open until the user closes it.
   const pinSidebar = () => {
     cancelHoverLeave();
     setSidebarPinned(true);
   };
 
-  // ≥1280px: ambos sidebars pueden coexistir. Debajo: solo uno a la vez.
+  // Wide screens can show both sidebars; narrower layouts keep one secondary
+  // panel open at a time to avoid competing overlays.
   const isWide = useMediaQuery("(min-width: 1280px)");
-  // ≥768px (tablet+): el sidebar empuja contenido. <768px (móvil): overlay.
+  // Tablet and up uses a pushed layout; mobile falls back to overlays.
   const isTabletUp = useMediaQuery("(min-width: 768px)");
 
-  // Si pasamos de wide a estrecho con ambos abiertos, cerramos el inspector.
+  // If the viewport becomes narrow while both panels are open, close the
+  // inspector first so the layout cannot overlap itself awkwardly.
   useEffect(() => {
     if (!isWide && sidebarOpen && inspectorOpen) setInspectorOpen(false);
   }, [isWide, sidebarOpen, inspectorOpen]);
 
-  // ESC cierra el último abierto.
+  // Escape always closes the most recently opened secondary panel.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
@@ -124,13 +128,13 @@ const Index = () => {
 
   const isThinking = status === "thinking";
   const isEmpty = activeChat.messages.length === 0 && !isThinking;
-  // Scrim sólo cuando el sidebar/inspector está superpuesto (móvil) o en
-  // pantallas estrechas con inspector abierto.
+  // The scrim only appears when a panel floats over the main content.
   const sidebarIsOverlay = !isTabletUp;
   const showScrim =
     (sidebarOpen && sidebarIsOverlay) || (inspectorOpen && !isWide);
 
-  // Mensaje seleccionado para el inspector (con fallback al último del asistente)
+  // The inspector follows the selected assistant message, or falls back to the
+  // latest assistant reply when nothing specific is selected.
   const lastAssistantMsg = [...activeChat.messages].reverse().find((m) => m.role === "assistant") ?? null;
   const inspectedMessage =
     activeChat.messages.find((m) => m.id === inspectorMessageId && m.role === "assistant") ??
@@ -284,6 +288,8 @@ const Index = () => {
                 <motion.div layoutId="composer" transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}>
                   <Composer
                     onSend={(t, f) => {
+                      // The hook decides the right backend route; the composer only
+                      // forwards text and attachment state.
                       sendMessage(t, f);
                       setPendingPrompt("");
                     }}

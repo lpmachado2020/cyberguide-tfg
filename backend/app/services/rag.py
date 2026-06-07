@@ -149,6 +149,8 @@ class RagService:
         history = self.session_store.get_recent_history(session_id)
         previous_intent = self.session_store.get_last_intent(session_id)
         previous_dialogue_goal = self.session_store.get_last_dialogue_goal(session_id)
+        # The request is classified before retrieval so the rest of the pipeline
+        # can decide whether to answer, clarify, or stay strict about grounding.
         intent_decision = classify_intent(
             question=request.message,
             history=history,
@@ -181,6 +183,8 @@ class RagService:
         reused_previous_evidence = False
 
         if strategy_decision.needs_clarification and strategy_decision.clarification_prompt:
+            # Short-circuit early when the system needs clarification; this avoids
+            # wasting retrieval or generation work on an underspecified turn.
             answer = strategy_decision.clarification_prompt
             total_ms = (perf_counter() - started_at) * 1000.0
             self.session_store.set_last_intent(session_id, intent_decision.intent)
@@ -237,6 +241,8 @@ class RagService:
             )
 
         if strategy_decision.should_retrieve:
+            # Only query the vector store when the strategy says grounding is
+            # required. That keeps casual follow-ups and clarifications cheap.
             retrieval_query = self._build_retrieval_query(
                 question=request.message,
                 history=history,
@@ -268,6 +274,8 @@ class RagService:
                 curated_chunks = self._build_lenient_guidance_fallback(retrieved_chunks)
 
         if not curated_chunks and strategy_decision.should_retrieve:
+            # If retrieval was weak, try to reuse the last grounded evidence from
+            # the current session so short follow-ups can still stay coherent.
             previous_sources = self.session_store.get_last_sources(session_id)
             if self._should_reuse_previous_evidence(
                 question=request.message,
@@ -278,6 +286,8 @@ class RagService:
                 reused_previous_evidence = True
 
         if not curated_chunks and intent_decision.evidence_policy == "strict_grounded":
+            # When the profile demands strict grounding and no evidence exists,
+            # return a safe miss message instead of inventing a plausible answer.
             answer = self._build_grounded_miss_response(request.message)
             total_ms = (perf_counter() - started_at) * 1000.0
             self.session_store.set_last_intent(session_id, intent_decision.intent)
@@ -332,6 +342,8 @@ class RagService:
             dialogue_decision=dialogue_decision,
         )
         if answer is None:
+            # Try deterministic templates before calling the model. This keeps
+            # common answers stable and avoids unnecessary generation latency.
             answer = self._maybe_answer_with_grounded_template(
                 question=request.message,
                 chunks=curated_chunks,
@@ -462,6 +474,8 @@ class RagService:
         fallback_title = "uploaded image" if mode == "image" else "uploaded pdf"
         effective_title = title or active_title or fallback_title
         extracted_text = "\n".join(chunk.text for chunk in effective_chunks) if effective_chunks else ""
+        # Document turns first reuse session state, then classify the turn, and
+        # only after that decide whether OCR or PDF content is safe to process.
         safety_assessment = assess_content_risk(
             question=question,
             content=extracted_text,
@@ -490,6 +504,8 @@ class RagService:
         )
 
         if prepared_chunks:
+            # Persist the new temporary document only when one was uploaded in
+            # this request; follow-ups can then reuse it without re-uploading.
             self.session_store.set_document(
                 normalized_session_id,
                 title=effective_title,
@@ -497,6 +513,8 @@ class RagService:
             )
 
         if not effective_chunks:
+            # Without document chunks there is nothing to ground the answer on,
+            # so explain the missing context rather than pretending otherwise.
             total_ms = (perf_counter() - started_at) * 1000.0
             return QueryResponse(
                 answer=(
@@ -595,6 +613,8 @@ class RagService:
             history=history,
             document_title=effective_title,
         )
+        # For temporary documents we embed the question and each chunk directly
+        # because there is no persistent vector store for uploaded files.
         embed_started = perf_counter()
         query_embed_result = await self.ollama_client.embed_with_metrics([retrieval_query])
         chunk_embed_result = await self.ollama_client.embed_with_metrics([chunk.text for chunk in effective_chunks])
@@ -647,6 +667,8 @@ class RagService:
                 curated_chunks = previous_sources[: self.settings.max_context_chunks]
                 reused_previous_evidence = True
         if not curated_chunks:
+            # If nothing survives curation, be explicit that the document was
+            # processed but not useful enough to ground a reliable answer.
             answer = (
                 f"He leído el PDF \"{effective_title}\", pero no he encontrado fragmentos suficientemente "
                 "relevantes para responder con fiabilidad a esta pregunta."
@@ -690,6 +712,7 @@ class RagService:
         generation_ms = 0.0
         model_result = ChatResult(content="")
         if safety_assessment.cautious_mode:
+            # High-risk image turns short-circuit to a deterministic safe reply.
             answer = build_cautious_answer(
                 question=question,
                 document_title=effective_title,
@@ -724,6 +747,8 @@ class RagService:
                 generation_ms = model_result.total_duration_ms or (perf_counter() - generation_started) * 1000.0
                 answer = model_result.content
                 if contains_unsafe_advice(answer):
+                    # If the model drifts into unsafe advice, replace it with the
+                    # deterministic safe answer used for high-risk scenarios.
                     answer = build_cautious_answer(
                         question=question,
                         document_title=effective_title,

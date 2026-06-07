@@ -33,6 +33,8 @@ DEFAULT_EVAL_DIR = REPO_ROOT / "data" / "evals"
 
 def ensure_repo_root_on_path() -> None:
     """Allow direct execution of scripts from the repository root or subfolders."""
+    # Scripts are meant to be runnable directly, so we add the repo root before
+    # importing backend modules that live outside the script directory.
     repo_root_str = str(REPO_ROOT)
     if repo_root_str not in sys.path:
         sys.path.insert(0, repo_root_str)
@@ -69,6 +71,8 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def normalize_model_json(raw_text: str) -> dict[str, Any]:
     """Extract and parse a JSON object from a local-model response."""
+    # Local models often wrap JSON in fences or extra prose, so strip the
+    # response down to the first valid JSON block before parsing it.
     text = raw_text.strip()
     fence_match = re.search(r"```(?:json)?\s*(\{.*\}|\[.*\])\s*```", text, flags=re.DOTALL)
     if fence_match:
@@ -94,6 +98,8 @@ async def ollama_chat_json(
     timeout: float = 180.0,
 ) -> dict[str, Any]:
     """Request a JSON response from the local Ollama chat endpoint."""
+    # This helper keeps the generation and judge scripts fully local by using
+    # the same Ollama endpoint everywhere.
     async with httpx.AsyncClient(base_url=base_url, timeout=timeout) as client:
         response = await client.post(
             "/api/chat",

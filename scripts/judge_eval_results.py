@@ -80,6 +80,8 @@ async def judge_results(
 
     for row in rows:
         if not row.get("ok"):
+            # Failed benchmark requests are judged as incorrect so the summary
+            # does not hide transport errors behind a normal pass rate.
             judged_rows.append(
                 {
                     **row,
@@ -123,6 +125,8 @@ Assistant retrieved sources:
         )
         judged_rows.append({**row, "judge": judgment})
 
+    # Persist both the detailed judgments and the compact summary so the run
+    # can be reviewed later without rerunning the judge step.
     write_jsonl(judged_output_path, judged_rows)
 
     total = len(judged_rows)
@@ -172,6 +176,8 @@ def main() -> None:
     parser.add_argument("--summary", type=Path, default=DEFAULT_EVAL_DIR / "judged_summary.json")
     args = parser.parse_args()
 
+    # Keeping the judge step separate lets the same benchmark output be scored
+    # again later with a different local model or rubric.
     summary = asyncio.run(
         judge_results(
             input_path=args.input,

@@ -24,6 +24,8 @@ function uid() {
 
 function loadFromStorage(): Chat[] {
   try {
+    // Chat state lives in localStorage so the interface behaves like a small
+    // persistent workspace instead of a stateless demo.
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Chat[];
@@ -64,6 +66,7 @@ async function callApi(
   sessionId: string,
   file: File | null,
 ): Promise<QueryResponse> {
+  // Mode and attachment type decide which backend route is used.
   if (mode === "image") {
     return queryImage({ message: text, sessionId, file: file && file.type.startsWith("image/") ? file : null });
   }
@@ -119,7 +122,8 @@ export function useChats() {
   );
 
   const createChat = useCallback(() => {
-    // Reutiliza un chat vacío existente si lo hay, en vez de crear duplicados
+    // Reuse an empty chat when possible so exploratory clicks do not flood the
+    // sidebar with blank placeholders.
     let reused: Chat | null = null;
     setChats((prev) => {
       const empty = prev.find((c) => c.messages.length === 0);
@@ -195,6 +199,8 @@ export function useChats() {
       const trimmed = text.trim();
       if (!trimmed || !activeChat) return;
 
+      // The attachment type decides the request mode first; without files, the
+      // current chat mode keeps the conversation on corpus, PDF or image.
       const fileType: "pdf" | "image" | null = file
         ? file.type === "application/pdf"
           ? "pdf"
@@ -214,6 +220,8 @@ export function useChats() {
         createdAt: Date.now(),
       };
 
+      // Append the user message immediately so the UI stays responsive while
+      // the backend is still retrieving evidence or running OCR.
       const isFirst = activeChat.messages.length === 0;
       updateChat(activeChat.id, (c) => ({
         ...c,
@@ -242,6 +250,8 @@ export function useChats() {
 
         const nextMode: ChatMode = (payload.mode as ChatMode) ?? mode;
 
+        // The backend response is authoritative, so update the local session id,
+        // mode and document title from what the server returns.
         updateChat(activeChat.id, (c) => ({
           ...c,
           sessionId: payload.session_id || c.sessionId,
@@ -293,6 +303,8 @@ export function useChats() {
 
       // Snapshot del estado actual desde el user msg
       const currentSlice = activeChat.messages.slice(idx);
+      // Preserve the old branch before rewriting the user message so the edit
+      // history remains navigable.
       const baseSnapshots: BranchSnapshot[] = existing?.snapshots ?? [{ items: currentSlice }];
       const editCount = (existing?.editCount ?? 0) + 1;
       const regenCount = existing?.regenCount ?? 0;
@@ -367,6 +379,8 @@ export function useChats() {
       if (existing && existing.regenCount >= MAX_REGEN) return;
 
       const currentSlice = activeChat.messages.slice(aIdx - 1);
+      // Regenerating an assistant message creates a new branch snapshot even if
+      // the question stays the same.
       const baseSnapshots: BranchSnapshot[] = existing?.snapshots ?? [{ items: currentSlice }];
       const editCount = existing?.editCount ?? 0;
       const regenCount = (existing?.regenCount ?? 0) + 1;

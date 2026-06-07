@@ -7,6 +7,7 @@ const BASE_URL =
 export const apiBaseUrl = BASE_URL;
 
 async function parseJson(res: Response): Promise<QueryResponse> {
+  // Centralize error handling so every chat route fails in the same way.
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
@@ -18,6 +19,7 @@ export async function queryCorpus(params: {
   sessionId?: string;
   topK?: number;
 }): Promise<QueryResponse> {
+  // Corpus requests are plain JSON because they do not carry files.
   const res = await fetch(`${BASE_URL}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -35,6 +37,8 @@ export async function queryPdf(params: {
   sessionId?: string;
   file?: File | null;
 }): Promise<QueryResponse> {
+  // PDF and image routes use multipart form data because they may include an
+  // uploaded file alongside the user message.
   const fd = new FormData();
   fd.append("message", params.message);
   if (params.sessionId) fd.append("session_id", params.sessionId);
