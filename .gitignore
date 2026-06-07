@@ -30,11 +30,12 @@ logs/
 artifacts/
 
 # Corpus and reference material kept outside the repo by policy
-references/
+references/*
+!references/incibe-pdfs/
+!references/incibe-pdfs/**
 docs/
 docs/private-notes/
 AGENT.md
-README.md
 
 # Vector stores or large local indexes
 data/vectorstore/
