@@ -214,11 +214,28 @@ app.mount(
     name="assets",
 )
 
+@app.get("/favicon.png", include_in_schema=False)
+async def favicon_png():
+    """Serve the browser favicon from the built frontend."""
+    target = settings.frontend_dist_dir / "favicon.png"
+    if target.exists():
+        return FileResponse(target)
+    return JSONResponse(status_code=404, content={"detail": "favicon.png not found"})
+
 
 @app.get("/{full_path:path}", include_in_schema=False)
 async def spa_fallback(full_path: str):
     """Serve the SPA entrypoint for frontend routes when the production build exists."""
-    if full_path.startswith(("health", "query", "query_pdf", "query_image", "assets/")):
+    if full_path.startswith(
+        (
+            "health",
+            "query",
+            "query_pdf",
+            "query_image",
+            "assets/",
+            "favicon.png",
+        )
+    ):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
     index_file = settings.frontend_dist_dir / "index.html"

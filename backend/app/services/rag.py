@@ -1118,8 +1118,44 @@ class RagService:
     ) -> Optional[str]:
         """Handle high-value support intents with more stable local guidance."""
         normalized = question.strip().lower()
-        conversation_text = " ".join(turn.content.lower() for turn in history[-4:])
-        combined = f"{conversation_text} {normalized}".strip()
+        recent_user_turns = [turn.content.lower() for turn in history[-4:] if turn.role == "user"]
+        recent_user_text = " ".join(recent_user_turns)
+        combined = f"{recent_user_text} {normalized}".strip()
+
+        phishing_terms = (
+            "phishing",
+            "correo sospechoso",
+            "valide mi cuenta",
+            "haga clic",
+            "he hecho clic",
+            "hice click",
+            "enlace",
+        )
+        phishing_signal_terms = (
+            "señal",
+            "señales",
+            "indicador",
+            "indicadores",
+            "en que me tengo que fijar",
+            "en qué me tengo que fijar",
+            "que mirar",
+            "qué mirar",
+            "que revisar",
+            "qué revisar",
+        )
+        compromised_terms = (
+            "hackeado",
+            "me han entrado",
+            "me han robado la cuenta",
+            "accedido a mi cuenta",
+            "comprometida",
+        )
+        current_mentions_phishing = any(term in normalized for term in phishing_terms)
+        phishing_context_detected = current_mentions_phishing or any(term in recent_user_text for term in phishing_terms)
+        current_mentions_compromised_account = any(term in normalized for term in compromised_terms)
+        compromised_context_detected = current_mentions_compromised_account or any(
+            term in recent_user_text for term in compromised_terms
+        )
 
         if intent_decision.intent == "greeting":
             if history:
@@ -1158,7 +1194,26 @@ class RagService:
         if intent_decision.intent != "guided_support":
             return None
 
-        if any(term in combined for term in ("phishing", "correo sospechoso", "valide mi cuenta", "haga clic", "he hecho clic", "hice click", "enlace")):
+        if "pdf" in normalized and any(
+            term in normalized for term in ("revisar", "analizar", "mirar", "que pone", "qué pone", "sospechoso")
+        ):
+            return (
+                "Si quieres que revise un PDF concreto, necesito que lo subas en esta misma conversación.\n\n"
+                "En cuanto lo adjuntes, puedo leer su contenido, responder a dudas sobre lo que pone y ayudarte a "
+                "valorar si hay señales sospechosas."
+            )
+
+        if phishing_context_detected:
+            if any(term in normalized for term in phishing_signal_terms):
+                return (
+                    "Para revisar si ese mensaje encaja con phishing, yo me fijaría sobre todo en estas señales:\n\n"
+                    "- Si mete prisa o intenta que actúes sin pensar.\n"
+                    "- Si el remitente, el dominio o el enlace no coinciden exactamente con el servicio legítimo.\n"
+                    "- Si pide credenciales, códigos, datos bancarios o validaciones que no deberían llegar por esa vía.\n"
+                    "- Si el tono es genérico, contiene errores raros o no encaja con el contexto habitual.\n"
+                    "- Si te empuja a entrar desde un botón o enlace en lugar de ir tú por la web o la app oficial.\n\n"
+                    "Si quieres, puedes copiarme el texto del correo o contarme qué elementos te generan duda y lo revisamos punto por punto."
+                )
             if dialogue_decision.goal == "triage":
                 return (
                     "Para distinguir si es phishing o no, yo miraría primero estas señales:\n\n"
@@ -1185,10 +1240,12 @@ class RagService:
                         "Después revisaría si llegaste a escribir credenciales o descargar algo, porque ahí cambia el "
                         "siguiente paso y te lo puedo ordenar."
                     )
-                return (
-                    "El primer paso sería no interactuar con el correo: no hagas clic, no respondas y no metas datos.\n\n"
-                    "Después puedes comprobar la situación desde la web o app oficial, entrando por tu cuenta."
-                )
+                if current_mentions_phishing:
+                    return (
+                        "El primer paso sería no interactuar con el correo: no hagas clic, no respondas y no metas datos.\n\n"
+                        "Después puedes comprobar la situación desde la web o app oficial, entrando por tu cuenta."
+                    )
+                return None
             if any(term in combined for term in ("meti la contraseña", "metí la contraseña", "introduje la contraseña", "he puesto la contraseña", "escribi la contraseña", "escribí la contraseña")):
                 return (
                     "Si llegaste a escribir la contraseña, yo actuaría como si la cuenta ya estuviera en riesgo:\n\n"
@@ -1208,17 +1265,19 @@ class RagService:
                     "- Si es una cuenta laboral, notifícalo cuanto antes al equipo de soporte o seguridad.\n\n"
                     "Si me dices si solo hiciste clic o además escribiste la contraseña, te oriento mejor con el siguiente paso."
                 )
-            return (
-                "Por lo que describes, yo lo trataría como un posible phishing.\n\n"
-                "- No hagas clic en el enlace ni respondas al mensaje.\n"
-                "- No introduzcas contraseñas, códigos ni datos personales.\n"
-                "- Verifica la situación desde la web o la app oficial entrando por tu cuenta, no desde el correo.\n"
-                "- Si es una cuenta de trabajo, reenvíalo al equipo de TI o seguridad para que lo revisen.\n"
-                "- Conserva el correo por si necesitas reportarlo, pero sin interactuar con él.\n\n"
-                "Si quieres, puedo ayudarte a revisar qué señales concretas suelen delatar este tipo de correos."
-            )
+            if current_mentions_phishing or dialogue_decision.goal == "triage":
+                return (
+                    "Por lo que describes, yo lo trataría como un posible phishing.\n\n"
+                    "- No hagas clic en el enlace ni respondas al mensaje.\n"
+                    "- No introduzcas contraseñas, códigos ni datos personales.\n"
+                    "- Verifica la situación desde la web o la app oficial entrando por tu cuenta, no desde el correo.\n"
+                    "- Si es una cuenta de trabajo, reenvíalo al equipo de TI o seguridad para que lo revisen.\n"
+                    "- Conserva el correo por si necesitas reportarlo, pero sin interactuar con él.\n\n"
+                    "Si quieres, puedo ayudarte a revisar qué señales concretas suelen delatar este tipo de correos."
+                )
+            return None
 
-        if any(term in combined for term in ("hackeado", "me han entrado", "me han robado la cuenta", "accedido a mi cuenta", "comprometida")):
+        if compromised_context_detected:
             lost_access_terms = (
                 "no puedo acceder",
                 "no puedo entrar",
@@ -1235,7 +1294,7 @@ class RagService:
                 "han cambiado el teléfono",
                 "no tengo acceso",
             )
-            if any(term in combined for term in lost_access_terms):
+            if any(term in normalized for term in lost_access_terms):
                 return (
                     "Si ya no puedes acceder a la cuenta, no intentaría seguir por el mismo enlace o mensaje.\n\n"
                     "Lo prioritario ahora sería iniciar la recuperación desde la web o la app oficial del servicio, "
@@ -1252,15 +1311,17 @@ class RagService:
                     "En cuanto lo hagas, revisaría sesiones abiertas, métodos de recuperación y cualquier cambio raro "
                     "en la cuenta para ver hasta dónde ha llegado el acceso."
                 )
-            return (
-                "Si crees que te han comprometido la cuenta, priorizaría esto en este orden:\n\n"
-                "- Cambia la contraseña desde un dispositivo de confianza.\n"
-                "- Cierra sesiones abiertas y revisa si han cambiado correo de recuperación, teléfono o reglas automáticas.\n"
-                "- Activa o refuerza el doble factor si todavía no lo tenías.\n"
-                "- Si es una cuenta de trabajo, avisa al equipo de TI o seguridad cuanto antes.\n"
-                "- Guarda cualquier evidencia útil: correos raros, avisos de acceso, capturas o cambios detectados.\n\n"
-                "Si me dices qué cuenta es y qué síntomas has visto, te ayudo a ordenar mejor el siguiente paso."
-            )
+            if current_mentions_compromised_account:
+                return (
+                    "Si crees que te han comprometido la cuenta, priorizaría esto en este orden:\n\n"
+                    "- Cambia la contraseña desde un dispositivo de confianza.\n"
+                    "- Cierra sesiones abiertas y revisa si han cambiado correo de recuperación, teléfono o reglas automáticas.\n"
+                    "- Activa o refuerza el doble factor si todavía no lo tenías.\n"
+                    "- Si es una cuenta de trabajo, avisa al equipo de TI o seguridad cuanto antes.\n"
+                    "- Guarda cualquier evidencia útil: correos raros, avisos de acceso, capturas o cambios detectados.\n\n"
+                    "Si me dices qué cuenta es y qué síntomas has visto, te ayudo a ordenar mejor el siguiente paso."
+                )
+            return None
 
         return None
 
