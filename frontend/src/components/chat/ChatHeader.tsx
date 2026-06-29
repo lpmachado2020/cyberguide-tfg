@@ -99,8 +99,14 @@ export function ChatHeader({
             className="mx-auto block w-full max-w-sm rounded-md bg-foreground/5 px-2 py-1 text-center text-sm font-medium tracking-tight text-foreground/90 outline-none ring-1 ring-primary/30 focus:ring-2"
           />
         ) : (
-          <h2 className="line-clamp-1 text-sm font-medium tracking-tight text-foreground/80">
-            {title || "CyberGuide"}
+          <h2 className="flex items-center justify-center gap-2 text-lg font-medium tracking-tight text-foreground/80">
+            <img
+              src="/favicon.png"
+              alt=""
+              aria-hidden="true"
+              className="h-8 w-8 rounded-[4px] object-contain"
+            />
+            <span className="line-clamp-1">{title || "CyberGuide"}</span>
             {modeLabel && (
               <span className="ml-2 text-muted-foreground/70">· {modeLabel}</span>
             )}

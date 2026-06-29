@@ -357,7 +357,7 @@ export function ChatSidebar({
   return (
     <aside className="glass animate-slide-left flex h-full w-72 flex-col gap-3 rounded-[28px] p-4">
       <div className="flex items-center justify-between">
-        <span className="px-2 text-sm font-semibold tracking-tight">Chats</span>
+        <span className="px-2 text-base font-semibold tracking-tight">Chats</span>
         <div className="flex items-center gap-1">
           {!selectMode ? (
             <button

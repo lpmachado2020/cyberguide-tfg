@@ -14,6 +14,25 @@
     <meta property="og:title" content="CyberGuide · Asistente de ciberseguridad" />
     <meta property="og:description" content="Asistente local para ciberseguridad en pymes y autónomos." />
     <meta property="og:type" content="website" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <script>
+      (() => {
+        const STORAGE_KEY = "cg-theme";
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const pref = raw === "light" || raw === "dark" || raw === "system" ? raw : "dark";
+        const resolved =
+          pref === "system"
+            ? window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+            : pref;
+        const root = document.documentElement;
+        root.classList.remove("light", "dark");
+        root.classList.add(resolved);
+        root.style.colorScheme = resolved;
+        root.dataset.themePreference = pref;
+      })();
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
