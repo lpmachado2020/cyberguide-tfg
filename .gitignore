@@ -46,7 +46,9 @@ data/faiss/
 data/evals/*.json
 data/evals/*.jsonl
 data/processed/runtime_audit.ndjson
+data/processed/acceptance_runs/
 .playwright-browsers/
 
 # Local memory-doc helper not meant for version control
 scripts/build_memory_docx.py
+scripts/run_acceptance_suite.py
