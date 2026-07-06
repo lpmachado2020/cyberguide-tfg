@@ -1050,7 +1050,13 @@ class RagService:
         combined_text = " ".join(chunk.text for chunk in chunks)
         combined_lower = combined_text.lower()
 
-        if any(phrase in normalized for phrase in ("cada cuanto", "cada cuánto", "cuanto tiempo", "cuánto tiempo")):
+        # The password-rotation templates below only make sense for password
+        # questions. Gate them on the question topic so they never hijack an
+        # unrelated turn (e.g. backup retention) even if password chunks leak
+        # into retrieval.
+        password_question = any(term in normalized for term in ("contrase", "clave", "password"))
+
+        if password_question and any(phrase in normalized for phrase in ("cada cuanto", "cada cuánto", "cuanto tiempo", "cuánto tiempo")):
             if "periodicidad dependerá de la criticidad" in combined_lower or "periodicidad dependera de la criticidad" in combined_lower:
                 if "cada __" in combined_lower or "___" in question:
                     return (
@@ -1063,7 +1069,7 @@ class RagService:
                     "depende de la criticidad de la información a la que dan acceso las contraseñas."
                 )
 
-        if "___" in question and ("cuanto" in normalized or "tiempo" in normalized):
+        if password_question and "___" in question and ("cuanto" in normalized or "tiempo" in normalized):
             if "periodicidad dependerá de la criticidad" in combined_lower or "periodicidad dependera de la criticidad" in combined_lower:
                 return (
                     "Ese hueco no viene relleno en la fuente. El checklist deja `___`, y el texto que lo acompaña "
@@ -1125,11 +1131,26 @@ class RagService:
         phishing_terms = (
             "phishing",
             "correo sospechoso",
+            "correo raro",
+            "mensaje sospechoso",
             "valide mi cuenta",
+            "validar mi cuenta",
+            "validar la cuenta",
+            "verificar mi cuenta",
+            "verifica tu cuenta",
+            "valida tu cuenta",
+            "validar mi identidad",
+            "verificar mi identidad",
+            "me pide validar",
+            "me pide verificar",
+            "me mete prisa",
             "haga clic",
             "he hecho clic",
             "hice click",
             "enlace",
+            "suplanta",
+            "suplantación",
+            "suplantacion",
         )
         phishing_signal_terms = (
             "señal",
@@ -1523,7 +1544,7 @@ class RagService:
         cleaned = re.sub(r"^\s*[¡!]?\s*claro[.!]?\s*", "", cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r"^\s*respuesta\s*:\s*", "", cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(
-            r"^\s*(entiendo que (?:quieres|deseas|buscas|preguntas)[^.\n]*[.\n]+\s*)",
+            r"^\s*(entiendo que (?:quieres|deseas|buscas|preguntas|necesitas|necesito)[^.\n]*[.\n]+\s*)",
             "",
             cleaned,
             flags=re.IGNORECASE,

@@ -9,7 +9,16 @@ export const apiBaseUrl = BASE_URL;
 async function parseJson(res: Response): Promise<QueryResponse> {
   // Centralize error handling so every chat route fails in the same way.
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
+    // Try to surface the backend's own `detail` (FastAPI) instead of a bare
+    // status code, so validation or size errors are not shown as "API down".
+    let detail = "";
+    try {
+      const body = await res.json();
+      detail = typeof body?.detail === "string" ? body.detail : "";
+    } catch {
+      // response had no JSON body; keep the status-only message
+    }
+    throw new Error(detail ? `HTTP ${res.status}: ${detail}` : `HTTP ${res.status}`);
   }
   return (await res.json()) as QueryResponse;
 }

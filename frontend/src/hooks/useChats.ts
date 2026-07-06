@@ -19,7 +19,11 @@ export const MAX_EDITS = 5;
 export const MAX_REGEN = 5;
 
 function uid() {
-  return (crypto as Crypto & { randomUUID: () => string }).randomUUID();
+  const c = (globalThis as { crypto?: Crypto & { randomUUID?: () => string } }).crypto;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  // Fallback for non-secure contexts (e.g. http:// on a LAN IP), where
+  // crypto.randomUUID is unavailable and would otherwise crash on load.
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function loadFromStorage(): Chat[] {
@@ -36,8 +40,17 @@ function loadFromStorage(): Chat[] {
 }
 
 function persist(chats: Chat[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  } catch (err) {
+    // localStorage can throw (quota exceeded, Safari private mode). Degrade
+    // gracefully instead of crashing the render on every state change.
+    console.error("No se pudo guardar el historial en localStorage:", err);
+  }
 }
+
+const BACKEND_ERROR_TEXT =
+  "No he podido contactar con el backend de CyberGuide. Verifica que la API esté corriendo y que `VITE_API_BASE_URL` apunte a la URL correcta.";
 
 function newChat(): Chat {
   const id = uid();
@@ -268,8 +281,7 @@ export function useChats() {
         const errorMsg: ChatMessage = {
           id: uid(),
           role: "assistant",
-          content:
-            "No he podido contactar con el backend de CyberGuide. Verifica que la API esté corriendo y que `VITE_API_BASE_URL` apunte a la URL correcta.",
+          content: BACKEND_ERROR_TEXT,
           createdAt: Date.now(),
         };
         updateChat(activeChat.id, (c) => ({
@@ -300,6 +312,10 @@ export function useChats() {
       const branches = activeChat.branches ?? {};
       const existing = branches[userMsgId];
       if (existing && existing.editCount >= MAX_EDITS) return;
+
+      // Keep the full conversation so a failed request can be rolled back
+      // instead of leaving a truncated chat with a lost answer.
+      const previousMessages = activeChat.messages;
 
       // Snapshot del estado actual desde el user msg
       const currentSlice = activeChat.messages.slice(idx);
@@ -354,6 +370,19 @@ export function useChats() {
         setStatus("idle");
         setThinkingPhase("");
       } catch (err) {
+        // Restore the previous conversation and surface the error so the edit
+        // never destroys the existing answer.
+        const errorMsg: ChatMessage = {
+          id: uid(),
+          role: "assistant",
+          content: BACKEND_ERROR_TEXT,
+          createdAt: Date.now(),
+        };
+        updateChat(activeChat.id, (c) => ({
+          ...c,
+          messages: [...previousMessages, errorMsg],
+          updatedAt: Date.now(),
+        }));
         setStatus("error");
         setThinkingPhase("");
         console.error(err);
@@ -377,6 +406,10 @@ export function useChats() {
       const branches = activeChat.branches ?? {};
       const existing = branches[userMsg.id];
       if (existing && existing.regenCount >= MAX_REGEN) return;
+
+      // Keep the full conversation so a failed request can be rolled back
+      // instead of dropping the current answer.
+      const previousMessages = activeChat.messages;
 
       const currentSlice = activeChat.messages.slice(aIdx - 1);
       // Regenerating an assistant message creates a new branch snapshot even if
@@ -424,6 +457,19 @@ export function useChats() {
         setStatus("idle");
         setThinkingPhase("");
       } catch (err) {
+        // Restore the previous answer and surface the error instead of leaving
+        // the turn without a response.
+        const errorMsg: ChatMessage = {
+          id: uid(),
+          role: "assistant",
+          content: BACKEND_ERROR_TEXT,
+          createdAt: Date.now(),
+        };
+        updateChat(activeChat.id, (c) => ({
+          ...c,
+          messages: [...previousMessages, errorMsg],
+          updatedAt: Date.now(),
+        }));
         setStatus("error");
         setThinkingPhase("");
         console.error(err);

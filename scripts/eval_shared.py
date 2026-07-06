@@ -111,6 +111,9 @@ async def ollama_chat_json(
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                # Deterministic decoding so dataset generation and judging are
+                # reproducible across runs and version-to-version deltas are real.
+                "options": {"temperature": 0, "seed": 42},
             },
         )
         response.raise_for_status()

@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import get_settings
 from .schemas import HealthResponse, QueryRequest, QueryResponse
 from .services.ingestion import prepare_chunks_from_text, read_pdf_bytes
-from .services.ollama_client import OllamaClient
+from .services.ollama_client import OllamaClient, OllamaUnavailableError
 from .services.ocr_service import OCRService
 from .services.rag import RagService
 from .services.session_store import SessionStore
@@ -75,6 +75,23 @@ app.add_middleware(
 )
 
 
+def _model_unavailable_response(*, mode: str, session_id: Optional[str]) -> QueryResponse:
+    """Friendly fallback when the local model (Ollama) is unavailable after retries."""
+    return QueryResponse(
+        answer=(
+            "Ahora mismo no he podido generar la respuesta porque el modelo local (Ollama) no está "
+            "disponible o ha fallado temporalmente. Comprueba que Ollama esté en marcha e inténtalo de "
+            "nuevo en unos segundos."
+        ),
+        sources=[],
+        model=settings.ollama_chat_model,
+        mode=mode,
+        session_id=session_id or "",
+        document_title=None,
+        trace=None,
+    )
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     """Return a basic service health snapshot."""
@@ -90,7 +107,10 @@ async def health() -> HealthResponse:
 @app.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest) -> QueryResponse:
     """Run the local RAG flow for a user query."""
-    return await rag_service.answer(request)
+    try:
+        return await rag_service.answer(request)
+    except OllamaUnavailableError:
+        return _model_unavailable_response(mode="corpus", session_id=request.session_id)
 
 
 @app.post("/query_pdf", response_model=QueryResponse)
@@ -128,12 +148,15 @@ async def query_pdf(
         )
         for chunk in prepared_chunks:
             chunk.metadata["source_kind"] = "pdf"
-    return await rag_service.answer_with_pdf(
-        session_id=session_id,
-        question=message,
-        prepared_chunks=prepared_chunks,
-        title=title,
-    )
+    try:
+        return await rag_service.answer_with_pdf(
+            session_id=session_id,
+            question=message,
+            prepared_chunks=prepared_chunks,
+            title=title,
+        )
+    except OllamaUnavailableError:
+        return _model_unavailable_response(mode="pdf", session_id=session_id)
 
 
 @app.post("/query_image", response_model=QueryResponse)
@@ -182,13 +205,16 @@ async def query_image(
         for chunk in prepared_chunks:
             chunk.metadata["source_kind"] = "ocr-image"
 
-    return await rag_service.answer_with_image(
-        session_id=session_id,
-        question=message,
-        prepared_chunks=prepared_chunks,
-        title=title,
-        ocr_segments=ocr_segments,
-    )
+    try:
+        return await rag_service.answer_with_image(
+            session_id=session_id,
+            question=message,
+            prepared_chunks=prepared_chunks,
+            title=title,
+            ocr_segments=ocr_segments,
+        )
+    except OllamaUnavailableError:
+        return _model_unavailable_response(mode="image", session_id=session_id)
 
 
 @app.get("/", include_in_schema=False)
