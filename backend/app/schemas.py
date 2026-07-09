@@ -51,6 +51,8 @@ class ResponseTrace(BaseModel):
     answer_mode: Optional[str] = None
     follow_up_policy: Optional[str] = None
     needs_clarification: bool = False
+    answer_source: Optional[str] = None
+    reused_previous_evidence: bool = False
     active_document: Optional[str] = None
     history_turns: int = 0
     ocr_segments: int = 0

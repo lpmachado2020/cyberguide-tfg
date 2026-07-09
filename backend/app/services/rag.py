@@ -14,6 +14,7 @@ Used by:
 """
 
 import json
+import logging
 import re
 from time import perf_counter
 from datetime import datetime, timezone
@@ -42,6 +43,9 @@ from .security_policy import (
 )
 from .session_store import SessionStore
 from .vector_store import VectorStore
+
+
+logger = logging.getLogger("cyberguide.rag")
 
 
 class RagService:
@@ -214,6 +218,7 @@ class RagService:
                 generation_ms=0.0,
                 total_ms=total_ms,
                 model_result=model_result,
+                answer_source="clarification",
             )
             return QueryResponse(
                 answer=answer,
@@ -237,6 +242,7 @@ class RagService:
                     generation_ms=0.0,
                     total_ms=total_ms,
                     model_result=model_result,
+                    answer_source="clarification",
                 ),
             )
 
@@ -308,6 +314,7 @@ class RagService:
                 generation_ms=0.0,
                 total_ms=total_ms,
                 model_result=model_result,
+                answer_source="grounded_miss",
             )
             return QueryResponse(
                 answer=answer,
@@ -331,9 +338,11 @@ class RagService:
                     generation_ms=0.0,
                     total_ms=total_ms,
                     model_result=model_result,
+                    answer_source="grounded_miss",
                 ),
             )
 
+        answer_source = "intent_template"
         answer = self._maybe_answer_with_intent_template(
             question=request.message,
             history=history,
@@ -344,11 +353,13 @@ class RagService:
         if answer is None:
             # Try deterministic templates before calling the model. This keeps
             # common answers stable and avoids unnecessary generation latency.
+            answer_source = "grounded_template"
             answer = self._maybe_answer_with_grounded_template(
                 question=request.message,
                 chunks=curated_chunks,
             )
         if answer is None:
+            answer_source = "model_generation"
             generation_started = perf_counter()
             model_result = await self._generate_answer(
                 question=request.message,
@@ -390,6 +401,8 @@ class RagService:
             generation_ms=generation_ms,
             total_ms=total_ms,
             model_result=model_result,
+            answer_source=answer_source,
+            reused_previous_evidence=reused_previous_evidence,
         )
         return QueryResponse(
             answer=answer,
@@ -413,6 +426,8 @@ class RagService:
                 generation_ms=generation_ms,
                 total_ms=total_ms,
                 model_result=model_result,
+                answer_source=answer_source,
+                reused_previous_evidence=reused_previous_evidence,
             ),
         )
 
@@ -515,12 +530,34 @@ class RagService:
         if not effective_chunks:
             # Without document chunks there is nothing to ground the answer on,
             # so explain the missing context rather than pretending otherwise.
+            answer = (
+                "No tengo un documento activo en esta conversación. Sube un PDF o una imagen "
+                "para que pueda analizarlo y mantener el contexto en los siguientes turnos."
+            )
             total_ms = (perf_counter() - started_at) * 1000.0
+            trace_note = "The request expected a session-scoped uploaded document, but no active document was available."
+            self._append_runtime_audit(
+                session_id=normalized_session_id,
+                mode=mode,
+                question=question,
+                answer=answer,
+                intent_decision=intent_decision,
+                dialogue_decision=dialogue_decision,
+                strategy_decision=strategy_decision,
+                trace_note=trace_note,
+                retrieved_chunks=[],
+                curated_chunks=[],
+                embedding_ms=0.0,
+                retrieval_ms=0.0,
+                generation_ms=0.0,
+                total_ms=total_ms,
+                model_result=ChatResult(content=""),
+                answer_source="no_active_document",
+                ocr_segments=ocr_segments,
+                safety_assessment=safety_assessment,
+            )
             return QueryResponse(
-                answer=(
-                    "No tengo un documento activo en esta conversación. Sube un PDF o una imagen "
-                    "para que pueda analizarlo y mantener el contexto en los siguientes turnos."
-                ),
+                answer=answer,
                 sources=[],
                 model=self.settings.ollama_chat_model,
                 mode=mode,
@@ -535,13 +572,14 @@ class RagService:
                     intent_decision=intent_decision,
                     dialogue_decision=dialogue_decision,
                     strategy_decision=strategy_decision,
-                    note="The request expected a session-scoped uploaded document, but no active document was available.",
+                    note=trace_note,
                     selected_chunks=[],
                     embedding_ms=0.0,
                     retrieval_ms=0.0,
                     generation_ms=0.0,
                     total_ms=total_ms,
                     model_result=ChatResult(content=""),
+                    answer_source="no_active_document",
                     ocr_segments=ocr_segments,
                     safety_assessment=safety_assessment,
                 ),
@@ -577,6 +615,7 @@ class RagService:
                 generation_ms=0.0,
                 total_ms=total_ms,
                 model_result=ChatResult(content=""),
+                answer_source="clarification",
                 ocr_segments=ocr_segments,
                 safety_assessment=safety_assessment,
             )
@@ -603,6 +642,7 @@ class RagService:
                     generation_ms=0.0,
                     total_ms=total_ms,
                     model_result=ChatResult(content=""),
+                    answer_source="clarification",
                     ocr_segments=ocr_segments,
                     safety_assessment=safety_assessment,
                 ),
@@ -677,6 +717,31 @@ class RagService:
                 "relevantes para responder con fiabilidad a esta pregunta."
             )
             total_ms = (perf_counter() - started_at) * 1000.0
+            trace_note = (
+                "A PDF was active, but the retrieved chunks were too weak or too noisy for a grounded answer."
+                if mode == "pdf"
+                else "An OCR image was active, but the retrieved chunks were too weak or too noisy for a grounded answer."
+            )
+            self._append_runtime_audit(
+                session_id=normalized_session_id,
+                mode=mode,
+                question=question,
+                answer=answer,
+                intent_decision=intent_decision,
+                dialogue_decision=dialogue_decision,
+                strategy_decision=strategy_decision,
+                trace_note=trace_note,
+                retrieved_chunks=scored_chunks,
+                curated_chunks=[],
+                embedding_ms=embedding_ms,
+                retrieval_ms=retrieval_ms,
+                generation_ms=0.0,
+                total_ms=total_ms,
+                model_result=ChatResult(content=""),
+                answer_source="no_relevant_evidence",
+                ocr_segments=ocr_segments,
+                safety_assessment=safety_assessment,
+            )
             return QueryResponse(
                 answer=answer,
                 sources=[],
@@ -693,17 +758,14 @@ class RagService:
                     intent_decision=intent_decision,
                     dialogue_decision=dialogue_decision,
                     strategy_decision=strategy_decision,
-                    note=(
-                        "A PDF was active, but the retrieved chunks were too weak or too noisy for a grounded answer."
-                        if mode == "pdf"
-                        else "An OCR image was active, but the retrieved chunks were too weak or too noisy for a grounded answer."
-                    ),
+                    note=trace_note,
                     selected_chunks=[],
                     embedding_ms=embedding_ms,
                     retrieval_ms=retrieval_ms,
                     generation_ms=0.0,
                     total_ms=total_ms,
                     model_result=ChatResult(content=""),
+                    answer_source="no_relevant_evidence",
                     ocr_segments=ocr_segments,
                     safety_assessment=safety_assessment,
                 ),
@@ -713,6 +775,7 @@ class RagService:
         model_result = ChatResult(content="")
         if safety_assessment.cautious_mode:
             # High-risk image turns short-circuit to a deterministic safe reply.
+            answer_source = "cautious_safety"
             answer = build_cautious_answer(
                 question=question,
                 document_title=effective_title,
@@ -720,6 +783,7 @@ class RagService:
                 signals=safety_assessment.signals,
             )
         else:
+            answer_source = "intent_template"
             answer = self._maybe_answer_with_intent_template(
                 question=question,
                 history=history,
@@ -728,11 +792,13 @@ class RagService:
                 dialogue_decision=dialogue_decision,
             )
             if answer is None:
+                answer_source = "grounded_template"
                 answer = self._maybe_answer_with_grounded_template(
                     question=question,
                     chunks=curated_chunks,
                 )
             if answer is None:
+                answer_source = "model_generation"
                 generation_started = perf_counter()
                 model_result = await self._generate_answer(
                     question=question,
@@ -749,6 +815,7 @@ class RagService:
                 if contains_unsafe_advice(answer):
                     # If the model drifts into unsafe advice, replace it with the
                     # deterministic safe answer used for high-risk scenarios.
+                    answer_source = "cautious_safety"
                     answer = build_cautious_answer(
                         question=question,
                         document_title=effective_title,
@@ -789,6 +856,8 @@ class RagService:
             generation_ms=generation_ms,
             total_ms=total_ms,
             model_result=model_result,
+            answer_source=answer_source,
+            reused_previous_evidence=reused_previous_evidence,
             ocr_segments=ocr_segments,
             safety_assessment=safety_assessment,
         )
@@ -815,6 +884,8 @@ class RagService:
                 generation_ms=generation_ms,
                 total_ms=total_ms,
                 model_result=model_result,
+                answer_source=answer_source,
+                reused_previous_evidence=reused_previous_evidence,
                 ocr_segments=ocr_segments,
                 safety_assessment=safety_assessment,
             ),
@@ -1440,10 +1511,38 @@ class RagService:
         generation_ms: float,
         total_ms: float,
         model_result: ChatResult,
+        answer_source: str,
+        reused_previous_evidence: bool = False,
         ocr_segments: int = 0,
         safety_assessment: Optional[SafetyAssessment] = None,
     ) -> None:
-        """Append a local runtime record for later cost/performance analysis."""
+        """Log a detailed per-request breakdown to the console and append a local runtime record."""
+        selected_refs = [self._chunk_ref(chunk) for chunk in curated_chunks]
+        divider = "-" * 88
+        block = "\n".join(
+            [
+                divider,
+                f"[REQUEST]   session={session_id[:8]} mode={mode} message={question[:160]!r}",
+                f"[INTENT]    intent={intent_decision.intent} evidence_policy={intent_decision.evidence_policy} "
+                f"should_retrieve={intent_decision.should_retrieve}",
+                f"            rationale: {intent_decision.rationale}",
+                f"[DIALOGUE]  goal={dialogue_decision.goal} response_shape={dialogue_decision.response_shape} "
+                f"answer_depth={dialogue_decision.answer_depth}",
+                f"[STRATEGY]  strategy={strategy_decision.strategy} answer_mode={strategy_decision.answer_mode} "
+                f"needs_clarification={strategy_decision.needs_clarification}",
+                f"[RETRIEVAL] retrieved={len(retrieved_chunks)} curated={len(curated_chunks)} "
+                f"reused_previous_evidence={reused_previous_evidence}",
+                f"            embedding_ms={embedding_ms:.0f} retrieval_ms={retrieval_ms:.0f} "
+                f"chunks={selected_refs}",
+                f"[ANSWER]    source={answer_source} model={self.settings.ollama_chat_model} "
+                f"embed_model={self.settings.ollama_embed_model}",
+                f"            prompt_tokens={model_result.prompt_tokens} "
+                f"completion_tokens={model_result.completion_tokens} generation_ms={generation_ms:.0f}",
+                f"[RESPONSE]  total_ms={total_ms:.0f} answer={answer[:200]!r}",
+                divider,
+            ]
+        )
+        logger.info(block)
         try:
             self.settings.processed_data_dir.mkdir(parents=True, exist_ok=True)
             record = {
@@ -1460,6 +1559,8 @@ class RagService:
                 "answer_mode": strategy_decision.answer_mode,
                 "follow_up_policy": strategy_decision.follow_up_policy,
                 "needs_clarification": strategy_decision.needs_clarification,
+                "answer_source": answer_source,
+                "reused_previous_evidence": reused_previous_evidence,
                 "trace_note": trace_note,
                 "retrieved_candidates": len(retrieved_chunks),
                 "curated_candidates": len(curated_chunks),
@@ -1638,6 +1739,8 @@ class RagService:
         generation_ms: float,
         total_ms: float,
         model_result: ChatResult,
+        answer_source: str,
+        reused_previous_evidence: bool = False,
         ocr_segments: int = 0,
         safety_assessment: Optional[SafetyAssessment] = None,
     ) -> ResponseTrace:
@@ -1735,6 +1838,8 @@ class RagService:
             answer_mode=strategy_decision.answer_mode,
             follow_up_policy=strategy_decision.follow_up_policy,
             needs_clarification=strategy_decision.needs_clarification,
+            answer_source=answer_source,
+            reused_previous_evidence=reused_previous_evidence,
             active_document=document_title,
             history_turns=len(history),
             ocr_segments=ocr_segments,

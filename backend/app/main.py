@@ -14,6 +14,7 @@ Used by:
 - Future frontend integration.
 """
 
+import logging
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -31,6 +32,8 @@ from .services.rag import RagService
 from .services.session_store import SessionStore
 from .services.vector_store import VectorStore
 
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
 
 settings = get_settings()
 vector_store = VectorStore(settings)
